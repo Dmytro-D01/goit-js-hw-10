@@ -3,32 +3,61 @@ import "flatpickr/dist/flatpickr.min.css";
 import iziToast from "izitoast";
 import "izitoast/dist/css/iziToast.min.css";
 
-const btn = document.querySelector('[data-start]'), input = document.querySelector('#datetime-picker');
-const spans = [...document.querySelectorAll('.value')]; // Масив: [дні, години, хвилини, секунди]
-let targetDate = null, intervalId = null;
+const btn = document.querySelector('[data-start]');
+const input = document.querySelector('#datetime-picker');
+const daysSpan = document.querySelector('[data-days]');
+const hoursSpan = document.querySelector('[data-hours]');
+const minutesSpan = document.querySelector('[data-minutes]');
+const secondsSpan = document.querySelector('[data-seconds]');
+
+let targetDate = null;
+let intervalId = null;
 
 btn.disabled = true;
 
 flatpickr(input, {
-  enableTime: true, time_24hr: true, defaultDate: new Date(), minuteIncrement: 1,
+  enableTime: true,
+  time_24hr: true,
+  defaultDate: new Date(),
+  minuteIncrement: 1,
   onClose([date]) {
     targetDate = date;
     const isFuture = targetDate > Date.now();
     btn.disabled = !isFuture;
-    if (!isFuture) iziToast.error({ message: "Please choose a date in the future", position: "topRight" });
+    if (!isFuture) {
+      iziToast.error({ 
+        message: "Please choose a date in the future", 
+        position: "topRight" 
+      });
+    }
   }
 });
 
 const pad = v => String(v).padStart(2, "0");
 
+function updateInterface({ days, hours, minutes, seconds }) {
+  daysSpan.textContent = pad(days);
+  hoursSpan.textContent = pad(hours);
+  minutesSpan.textContent = pad(minutes);
+  secondsSpan.textContent = pad(seconds);
+}
+
 btn.onclick = () => {
-  btn.disabled = input.disabled = true;
+  btn.disabled = true;
+  input.disabled = true;
+
   intervalId = setInterval(() => {
     const diff = targetDate - Date.now();
-    if (diff <= 0) return clearInterval(intervalId), (input.disabled = false);
 
-    const t = convertMs(diff);
-    [t.days, t.hours, t.minutes, t.seconds].forEach((val, i) => spans[i].textContent = pad(val));
+    if (diff <= 0) {
+      clearInterval(intervalId);
+      updateInterface({ days: 0, hours: 0, minutes: 0, seconds: 0 }); // Явно ставимо нулі
+      input.disabled = false;
+      return;
+    }
+
+    const timeValues = convertMs(diff);
+    updateInterface(timeValues);
   }, 1000);
 };
 
